@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 . ./tool/ventoy_lib.sh
 
@@ -216,7 +216,7 @@ if [ -f /proc/$wID/maps ]; then
     echo "################## Press Ctrl + C to exit #####################"
     echo ""
     
-    su $USERNAME -c "firefox http://${HOST}:${PORT}"
+    su $USERNAME -c "google-chrome http://${HOST}:${PORT}"
     wait $wID
 fi
 
