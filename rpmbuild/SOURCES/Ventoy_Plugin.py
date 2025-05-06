@@ -2,6 +2,7 @@ import os
 import subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, scrolledtext, END
+import signal
 
 def list_drives():
     result = subprocess.run(
@@ -22,7 +23,7 @@ def list_drives():
         drives.append((f"/dev/{name}", f"{size} {model}".strip()))
     return drives
 
-def run_ventoyplugson(selected_drive, output_widget):
+def run_ventoyplugson(selected_drive, output_widget, exit_btn):
     # Ask for sudo password
     password = simpledialog.askstring("Sudo Password", "Enter your sudo password:", show='*')
     if password is None:
@@ -47,6 +48,9 @@ def run_ventoyplugson(selected_drive, output_widget):
             text=True,
             bufsize=1
         )
+        # Store the process object on the exit button for later access
+        exit_btn.proc = proc
+
         # Send the password and read output
         try:
             proc.stdin.write(password + "\n")
@@ -66,6 +70,14 @@ def run_ventoyplugson(selected_drive, output_widget):
     except Exception as e:
         output_widget.insert(END, f"Failed to run VentoyPlugson.sh: {e}\n")
 
+def on_exit_process(exit_btn, output_widget):
+    proc = getattr(exit_btn, 'proc', None)
+    if proc and proc.poll() is None:
+        proc.send_signal(signal.SIGINT)
+        output_widget.insert(END, "\nSent Ctrl+C (SIGINT) to the process.\n")
+    else:
+        output_widget.insert(END, "\nNo running process to terminate.\n")
+
 def on_run():
     selected = drive_var.get()
     if not selected:
@@ -77,7 +89,9 @@ def on_run():
     output_text = scrolledtext.ScrolledText(output_win, width=100, height=30)
     output_text.pack(fill="both", expand=True)
     output_text.insert(END, f"Running VentoyPlugson.sh for {selected}...\n\n")
-    root.after(100, lambda: run_ventoyplugson(selected, output_text))
+    exit_btn = tk.Button(output_win, text="Exit", command=lambda: on_exit_process(exit_btn, output_text))
+    exit_btn.pack(pady=5)
+    root.after(100, lambda: run_ventoyplugson(selected, output_text, exit_btn))
 
 # Tkinter GUI
 root = tk.Tk()
@@ -101,7 +115,7 @@ drive_combo.bind("<<ComboboxSelected>>", update_drive_var)
 run_btn = tk.Button(root, text="Run Ventoy Plugson", command=on_run)
 run_btn.pack(pady=10)
 
-exit_btn = tk.Button(root, text="Exit", command=root.destroy)
-exit_btn.pack(pady=5)
+exit_btn_main = tk.Button(root, text="Exit", command=root.destroy)
+exit_btn_main.pack(pady=5)
 
 root.mainloop()
