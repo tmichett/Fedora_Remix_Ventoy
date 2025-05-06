@@ -3,6 +3,7 @@ import subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, scrolledtext, END
 import signal
+import threading
 
 def list_drives():
     result = subprocess.run(
@@ -30,41 +31,40 @@ def run_ventoyplugson(selected_drive, output_widget, exit_btn):
         return
 
     cmd = ["sudo", "-S", "./VentoyPlugson.sh", selected_drive]
-    try:
-        os.chdir("/opt/ventoy/")
-    except Exception as e:
-        output_widget.insert(END, f"Failed to change directory: {e}\n")
-        return
 
-    try:
-        proc = subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1
-        )
-        # Store the process object on the exit button for later access
-        exit_btn.proc = proc
-
+    def worker():
         try:
-            proc.stdin.write(password + "\n")
-            proc.stdin.flush()
-        except Exception as e:
-            output_widget.insert(END, f"Failed to send password: {e}\n")
-            return
+            # Start the process in the correct working directory
+            proc = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                cwd="/opt/ventoy/"
+            )
+            exit_btn.proc = proc
+            try:
+                proc.stdin.write(password + "\n")
+                proc.stdin.flush()
+            except Exception as e:
+                output_widget.after(0, output_widget.insert, END, f"Failed to send password: {e}\n")
+                return
 
-        for line in proc.stdout:
-            output_widget.insert(END, line)
-            output_widget.see(END)
-        proc.wait()
-        if proc.returncode == 0:
-            output_widget.insert(END, "\nProcess completed successfully.\n")
-        else:
-            output_widget.insert(END, f"\nProcess exited with code {proc.returncode}.\n")
-    except Exception as e:
-        output_widget.insert(END, f"Failed to run VentoyPlugson.sh: {e}\n")
+            for line in iter(proc.stdout.readline, ''):
+                output_widget.after(0, output_widget.insert, END, line)
+                output_widget.after(0, output_widget.see, END)
+            proc.stdout.close()
+            proc.wait()
+            if proc.returncode == 0:
+                output_widget.after(0, output_widget.insert, END, "\nProcess completed successfully.\n")
+            else:
+                output_widget.after(0, output_widget.insert, END, f"\nProcess exited with code {proc.returncode}.\n")
+        except Exception as e:
+            output_widget.after(0, output_widget.insert, END, f"Failed to run VentoyPlugson.sh: {e}\n")
+
+    threading.Thread(target=worker, daemon=True).start()
 
 def on_exit_process(exit_btn, output_widget):
     proc = getattr(exit_btn, 'proc', None)
@@ -86,7 +86,7 @@ def on_run():
     output_text.insert(END, f"Running VentoyPlugson.sh for {selected}...\n\n")
     exit_btn = tk.Button(output_win, text="Exit", command=lambda: on_exit_process(exit_btn, output_text))
     exit_btn.pack(pady=5)
-    root.after(100, lambda: run_ventoyplugson(selected, output_text, exit_btn))
+    run_ventoyplugson(selected, output_text, exit_btn)
 
 # Tkinter GUI
 root = tk.Tk()
