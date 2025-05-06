@@ -2,9 +2,9 @@ Name:           ventoy
 Version:        1.0.0
 Release:        1%{?dist}
 Summary:        Ventoy installation package
-
 License:        GPLv2
-BuildArch:      noarch
+AutoReqProv:    no
+
 
 %description
 Ventoy installation package that provides necessary files and scripts for Ventoy functionality.
