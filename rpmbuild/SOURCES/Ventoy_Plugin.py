@@ -24,13 +24,11 @@ def list_drives():
     return drives
 
 def run_ventoyplugson(selected_drive, output_widget, exit_btn):
-    # Ask for sudo password
     password = simpledialog.askstring("Sudo Password", "Enter your sudo password:", show='*')
     if password is None:
         output_widget.insert(END, "Cancelled by user.\n")
         return
 
-    # Prepare the command
     cmd = ["sudo", "-S", "./VentoyPlugson.sh", selected_drive]
     try:
         os.chdir("/opt/ventoy/")
@@ -38,7 +36,6 @@ def run_ventoyplugson(selected_drive, output_widget, exit_btn):
         output_widget.insert(END, f"Failed to change directory: {e}\n")
         return
 
-    # Start the process
     try:
         proc = subprocess.Popen(
             cmd,
@@ -51,7 +48,6 @@ def run_ventoyplugson(selected_drive, output_widget, exit_btn):
         # Store the process object on the exit button for later access
         exit_btn.proc = proc
 
-        # Send the password and read output
         try:
             proc.stdin.write(password + "\n")
             proc.stdin.flush()
@@ -83,7 +79,6 @@ def on_run():
     if not selected:
         messagebox.showwarning("No drive selected", "Please select a drive.")
         return
-    # Open a new window for output
     output_win = tk.Toplevel(root)
     output_win.title("Ventoy Plugson Output")
     output_text = scrolledtext.ScrolledText(output_win, width=100, height=30)
