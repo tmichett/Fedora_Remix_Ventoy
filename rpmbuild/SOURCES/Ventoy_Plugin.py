@@ -101,4 +101,7 @@ drive_combo.bind("<<ComboboxSelected>>", update_drive_var)
 run_btn = tk.Button(root, text="Run Ventoy Plugson", command=on_run)
 run_btn.pack(pady=10)
 
+exit_btn = tk.Button(root, text="Exit", command=root.destroy)
+exit_btn.pack(pady=5)
+
 root.mainloop()
